@@ -62,9 +62,9 @@ const Sidebar = ({
           <ListItem button="true" onClick={() => handleModelPath('../public/table.glb')}>
             <ListItemText primary="Table" />
           </ListItem>
-          <ListItem button="true" onClick={() => handleModelPath('../public/suzanne.glb')}>
+          {/* <ListItem button="true" onClick={() => handleModelPath('../public/suzanne.glb')}>
             <ListItemText primary="Suzanne" />
-          </ListItem>
+          </ListItem> */}
         </List>
       )}
 
