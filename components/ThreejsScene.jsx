@@ -1,6 +1,6 @@
 import { OrbitControls, TransformControls } from "@react-three/drei";
 import { Canvas, useLoader } from "@react-three/fiber";
-import { useEffect, useState, useRef } from "react";
+import { Suspense, useEffect, useState, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
@@ -24,10 +24,8 @@ function Box({ height, width, depth, color }) {
   );
 }
 
-function Model({ modelLoad, onClickModel }) {
+function ModelLoader({ modelLoad, onClickModel }) {
   const gltf = useLoader(GLTFLoader, modelLoad);
-  console.log(gltf);
-  
   const modelRef = useRef();
 
   const handleClick = () => {
@@ -37,6 +35,15 @@ function Model({ modelLoad, onClickModel }) {
   return (
     <mesh ref={modelRef} onClick={handleClick}>
       <primitive position={[0, 0, 0]} object={gltf.scene} scale={1} />
+    </mesh>
+  );
+}
+
+function Fallback() {
+  return (
+    <mesh>
+      <boxGeometry args={[1, 1, 1]} />
+      <meshBasicMaterial color="gray" />
     </mesh>
   );
 }
@@ -117,14 +124,16 @@ function ThreejsScene({ wallData, modelLoad }) {
           depth={boxData.depth}
           color={boxData.color}
         />      
-        {models.map((model, index) => (
-          <Model
-            key={index}
-            modelLoad={model}
-            transformMode={transformMode}
-            onClickModel={handleClickModel}
-          />
-        ))}
+        <Suspense fallback={<Fallback />}>
+          {models.map((model, index) => (
+            <ModelLoader
+              key={index}
+              modelLoad={model}
+              transformMode={transformMode}
+              onClickModel={handleClickModel}
+            />
+          ))}
+        </Suspense>
         {selectedModel && (
           <TransformControls
             ref={transformControlsRef}
