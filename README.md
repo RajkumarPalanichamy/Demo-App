@@ -1,12 +1,77 @@
-# React + Vite
+# 3D Scene Editor App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React-based 3D scene editor using Three.js, @react-three/fiber, and Material-UI. This app allows you to:
 
-Currently, two official plugins are available:
+- Create and customize a wall
+- Load and place 3D models (GLB format)
+- Enable Spline Path mode to add and move spheres
+- Connect spheres with a spline path
+- Animate the camera along the spline path with adjustable speed
+- Control the scene with an intuitive sidebar UI
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Features
 
-## Expanding the ESLint configuration
+- **Wall Creation:** Enter custom dimensions for a wall and visualize it in 3D.
+- **Model Loading:** Add pre-defined 3D models (door, sofa, table) to the scene.
+- **Spline Path:**
+  - Enable Spline Path mode to add spheres as path points
+  - Move spheres interactively (translate)
+  - Spline line connects the spheres
+  - Play: Camera animates along the spline (spheres/line hidden during animation)
+  - Stop: Resets the path and animation
+  - Adjustable speed slider for animation
+- **Keyboard Shortcuts:**
+  - `T`: Translate mode
+  - `R`: Rotate mode
+  - `S`: Scale mode
+  - `Q`: Deselect model
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Tech Stack & Dependencies
+
+- [React](https://reactjs.org/)
+- [@react-three/fiber](https://docs.pmnd.rs/react-three-fiber/getting-started/introduction)
+- [three](https://threejs.org/)
+- [@react-three/drei](https://docs.pmnd.rs/react-three-drei/introduction)
+- [@mui/material](https://mui.com/material-ui/getting-started/overview/)
+
+## Getting Started
+
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+2. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
+
+3. **Open your browser:**
+   Visit [http://localhost:5173](http://localhost:5173) (or the port shown in your terminal).
+
+## Usage Guide
+
+- **Left Sidebar:**
+  - Load 3D models into the scene.
+- **Right Sidebar:**
+  - Enter wall dimensions and create a wall.
+  - Spline Path section:
+    - Enable Spline Path: Start adding spheres.
+    - Add Path: Add a new sphere to the path.
+    - Play: Animate the camera along the spline (requires at least 2 spheres).
+    - Stop: Reset the path and animation.
+    - Speed: Adjust the camera animation speed.
+- **Scene Controls:**
+  - Click spheres to select and move them.
+  - Use mouse to orbit, pan, and zoom the scene.
+
+## File Structure
+
+- `src/App.jsx` — Main app logic and state
+- `components/SideBar.jsx` — Sidebar UI and controls
+- `components/ThreejsScene.jsx` — 3D scene logic and rendering
+- `public/` — 3D model files (GLB)
+
+## License
+
+MIT
