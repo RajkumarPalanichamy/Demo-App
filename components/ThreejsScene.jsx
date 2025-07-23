@@ -68,7 +68,6 @@ function ThreejsScene({ wallData, modelLoad, splineEnabled, splinePath, playSpli
   const [cameraAnimating, setCameraAnimating] = useState(false);
   const cameraRef = useRef();
   const animationRef = useRef();
-  const [animationProgress, setAnimationProgress] = useState(0);
   const [selectedSphere, setSelectedSphere] = useState(null);
   const sphereRefs = useRef([]);
 
@@ -135,7 +134,6 @@ function ThreejsScene({ wallData, modelLoad, splineEnabled, splinePath, playSpli
       setSplineSpheres([]);
       setSplineCurve(null);
       setCameraAnimating(false);
-      setAnimationProgress(0);
       setSelectedSphere(null);
     }
   }, [splineEnabled, splinePath.length]);
@@ -154,11 +152,9 @@ function ThreejsScene({ wallData, modelLoad, splineEnabled, splinePath, playSpli
   useEffect(() => {
     if (playSpline && splineCurve && splineSpheres.length >= 2) {
       setCameraAnimating(true);
-      setAnimationProgress(0);
       animateCamera(0);
     } else {
       setCameraAnimating(false);
-      setAnimationProgress(0);
     }
     if (!playSpline) {
       cancelAnimationFrame(animationRef.current);
@@ -173,10 +169,8 @@ function ThreejsScene({ wallData, modelLoad, splineEnabled, splinePath, playSpli
     let t = progress;
     if (t > 1) {
       setCameraAnimating(false);
-      setAnimationProgress(1);
       return;
     }
-    setAnimationProgress(t);
     if (cameraRef.current) {
       const pos = splineCurve.getPoint(t);
       cameraRef.current.position.set(pos.x, pos.y + 5, pos.z + 10);
@@ -190,7 +184,6 @@ function ThreejsScene({ wallData, modelLoad, splineEnabled, splinePath, playSpli
       setSplineSpheres([]);
       setSplineCurve(null);
       setCameraAnimating(false);
-      setAnimationProgress(0);
       cancelAnimationFrame(animationRef.current);
     }
   }, [splineEnabled]);
@@ -200,7 +193,6 @@ function ThreejsScene({ wallData, modelLoad, splineEnabled, splinePath, playSpli
       setSplineSpheres([]);
       setSplineCurve(null);
       setCameraAnimating(false);
-      setAnimationProgress(0);
       cancelAnimationFrame(animationRef.current);
     }
   }, [splineEnabled]);
@@ -268,7 +260,7 @@ function ThreejsScene({ wallData, modelLoad, splineEnabled, splinePath, playSpli
         <OrbitControls makeDefault enabled={!cameraAnimating} />
         <ambientLight />
         <gridHelper args={[200, 200, 0x00ff00, 0x444444]} />
-        
+
         <Box
           height={boxData.height}
           width={boxData.width}
