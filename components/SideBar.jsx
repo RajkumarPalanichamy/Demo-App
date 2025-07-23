@@ -1,7 +1,24 @@
 import React, { useState } from 'react';
 import { Drawer, List, ListItem, ListItemText, Divider, TextField, Grid, Button } from '@mui/material';
+import Slider from '@mui/material/Slider';
+import Paper from '@mui/material/Paper';
+import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
+import Tooltip from '@mui/material/Tooltip';
 
-const Sidebar = ({ side = "left", onWallCreate, modelLoad }) => {
+const Sidebar = ({
+  side = "left",
+  onWallCreate,
+  modelLoad,
+  splineEnabled,
+  onEnableSpline,
+  onAddPath,
+  onPlaySpline,
+  onStopSpline,
+  splinePathLength,
+  splineSpeed,
+  onSplineSpeedChange
+}) => {
   const [width, setWidth] = useState('20');
   const [height, setHeight] = useState('10');
   const [depth, setDepth] = useState('2');
@@ -89,6 +106,74 @@ const Sidebar = ({ side = "left", onWallCreate, modelLoad }) => {
               Create Wall
             </Button>
           </Grid>
+          <Divider style={{ margin: '16px 0' }} />
+          <Paper elevation={3} sx={{ p: 2, background: '#f8f9fa' }}>
+            <Box mb={2}>
+              <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>Spline Path</span>
+            </Box>
+            <Stack spacing={2}>
+              <Tooltip title={splineEnabled ? 'Disable spline path mode' : 'Enable spline path mode'} placement="right">
+                <Button
+                  variant={splineEnabled ? "contained" : "outlined"}
+                  color="primary"
+                  fullWidth
+                  onClick={onEnableSpline}
+                >
+                  {splineEnabled ? "Spline Path Enabled" : "Enable Spline Path"}
+                </Button>
+              </Tooltip>
+              <Tooltip title="Add a new point (sphere) to the path" placement="right">
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  fullWidth
+                  onClick={onAddPath}
+                  disabled={!splineEnabled}
+                >
+                  Add Path
+                </Button>
+              </Tooltip>
+              <Tooltip title="Animate camera along the path" placement="right">
+                <Button
+                  variant="outlined"
+                  color="success"
+                  fullWidth
+                  onClick={onPlaySpline}
+                  disabled={!splineEnabled || splinePathLength < 2}
+                >
+                  Play
+                </Button>
+              </Tooltip>
+              <Tooltip title="Stop and reset the path and animation" placement="right">
+                <Button
+                  variant="outlined"
+                  color="error"
+                  fullWidth
+                  onClick={onStopSpline}
+                  disabled={!splineEnabled}
+                >
+                  Stop
+                </Button>
+              </Tooltip>
+              <Box mt={1}>
+                <Box mb={1}>
+                  <span style={{ fontWeight: 500 }}>Speed</span>
+                </Box>
+                <Slider
+                  min={0.1}
+                  max={5}
+                  step={0.1}
+                  value={splineSpeed}
+                  onChange={(_, v) => onSplineSpeedChange(v)}
+                  size="medium"
+                  sx={{ width: '100%' }}
+                />
+                <Box mt={1} textAlign="center">
+                  <span style={{ fontWeight: 500 }}>{splineSpeed.toFixed(1)}x</span>
+                </Box>
+              </Box>
+            </Stack>
+          </Paper>
         </div>
       )}
     </Drawer>
