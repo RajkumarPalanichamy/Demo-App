@@ -72,6 +72,3 @@ A React-based 3D scene editor using Three.js, @react-three/fiber, and Material-U
 - `components/ThreejsScene.jsx` — 3D scene logic and rendering
 - `public/` — 3D model files (GLB)
 
-## License
-
-MIT
