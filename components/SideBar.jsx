@@ -53,16 +53,16 @@ const Sidebar = ({
             <ListItemText primary="Models" />
           </ListItem>
           <Divider />
-          <ListItem button="true" onClick={() => handleModelPath('../public/door.glb')}>
+          <ListItem button="true" onClick={() => handleModelPath('./door.glb')}>
             <ListItemText primary="Door" />
           </ListItem>
-          <ListItem button="true" onClick={() => handleModelPath('../public/old_sofa.glb')}>
+          <ListItem button="true" onClick={() => handleModelPath('./old_sofa.glb')}>
             <ListItemText primary="Sofa" />
           </ListItem>
-          <ListItem button="true" onClick={() => handleModelPath('../public/table.glb')}>
+          <ListItem button="true" onClick={() => handleModelPath('./table.glb')}>
             <ListItemText primary="Table" />
           </ListItem>
-          {/* <ListItem button="true" onClick={() => handleModelPath('../public/suzanne.glb')}>
+          {/* <ListItem button="true" onClick={() => handleModelPath('./suzanne.glb')}>
             <ListItemText primary="Suzanne" />
           </ListItem> */}
         </List>
