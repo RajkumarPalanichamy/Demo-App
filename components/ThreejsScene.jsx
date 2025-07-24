@@ -1,42 +1,233 @@
 import React from 'react';
 import { OrbitControls, TransformControls } from "@react-three/drei";
 import { Canvas, useLoader } from "@react-three/fiber";
-import { Suspense, useEffect, useState, useRef } from "react";
+import { Suspense, useEffect, useState, useRef, useMemo } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import { CSG } from 'three-csg-ts';
 
-function Box({ height, width, depth, color }) {
-  const shape = new THREE.Shape();
-  shape.moveTo(0, 0);
-  shape.lineTo(0, height);
-  shape.lineTo(width, height);
-  shape.lineTo(width, 0);
-  shape.lineTo(0, 0);
+function Wall({ height, width, depth, color, doorCuts }) {
+  const wallMesh = useRef();
+  const [wallGeometry, setWallGeometry] = useState(null);
 
-  const extrudeSetting = {
-    depth: depth,
-    bevelEnabled: false,
-  };
+  const baseWallGeometry = useMemo(() => {
+    const shape = new THREE.Shape();
+    shape.moveTo(0, 0);
+    shape.lineTo(0, height);
+    shape.lineTo(width, height);
+    shape.lineTo(width, 0);
+    shape.lineTo(0, 0);
+
+    const extrudeSetting = {
+      depth: depth,
+      bevelEnabled: false,
+    };
+
+    return new THREE.ExtrudeGeometry(shape, extrudeSetting);
+  }, [height, width, depth]);
+
+  useEffect(() => {
+    try {
+      if (!baseWallGeometry) {
+        setWallGeometry(baseWallGeometry);
+        return;
+      }
+
+      if (!doorCuts || doorCuts.length === 0 || doorCuts.every(cut => !cut)) {
+        setWallGeometry(baseWallGeometry);
+        return;
+      }
+
+      const validCuts = doorCuts.filter(cut => cut && cut.geometry);
+
+      if (validCuts.length === 0) {
+        setWallGeometry(baseWallGeometry);
+        return;
+      }
+
+      let wallCSG = CSG.fromGeometry(baseWallGeometry);
+
+      validCuts.forEach((cut, index) => {
+        try {
+          const cutGeometry = cut.geometry.clone();
+          cutGeometry.applyMatrix4(new THREE.Matrix4().setPosition(
+            cut.position.x, 
+            cut.position.y, 
+            cut.position.z
+          ));
+          
+          const cutCSG = CSG.fromGeometry(cutGeometry);
+          wallCSG = wallCSG.subtract(cutCSG);
+        } catch (error) {
+          console.warn(`Error applying CSG cut ${index}:`, error);
+        }
+      });
+
+      const identityMatrix = new THREE.Matrix4();
+      const resultGeometry = CSG.toGeometry(wallCSG, identityMatrix);
+      setWallGeometry(resultGeometry);
+    } catch (error) {
+      console.error('Error in CSG operation:', error);
+      setWallGeometry(baseWallGeometry);
+    }
+  }, [baseWallGeometry, doorCuts]);
+
   return (
-    <mesh>
-      <extrudeGeometry args={[shape, extrudeSetting]} />
+    <mesh ref={wallMesh} geometry={wallGeometry || baseWallGeometry} position={[0, height/2, 0]}>
       <meshStandardMaterial color={color} />
     </mesh>
   );
 }
 
-function ModelLoader({ modelLoad, onClickModel }) {
+function DoorModel({ modelLoad, onDoorMove, doorIndex }) {
   const gltf = useLoader(GLTFLoader, modelLoad);
-  const modelRef = useRef();
+  const doorRef = useRef();
+  const [isSelected, setIsSelected] = useState(false);
+  const [cutHelper, setCutHelper] = useState(null);
+  const [position, setPosition] = useState([doorIndex * 3, 0, 0]);
+  const [cutSize, setCutSize] = useState(null);
 
-  const handleClick = () => {
-    onClickModel(modelRef.current);
+  const createInitialCutSize = () => {
+    if (!doorRef.current || cutSize) return;
+
+    try {
+      const box = new THREE.Box3().setFromObject(doorRef.current);
+      const size = box.getSize(new THREE.Vector3());
+
+      const minSize = 0.5;
+      const stableCutSize = {
+        x: Math.max(size.x * 1.1, minSize),
+        y: Math.max(size.y * 1.1, minSize),
+        z: Math.max(size.z * 1.1, minSize)
+      };
+
+      setCutSize(stableCutSize);
+    } catch (error) {
+      console.warn('Error creating initial cut size:', error);
+    }
   };
 
+  const createCutGeometry = () => {
+    if (!doorRef.current || !cutSize) return null;
+
+    try {
+      const cutGeometry = new THREE.BoxGeometry(cutSize.x, cutSize.y, cutSize.z);
+
+      const cutData = {
+        geometry: cutGeometry,
+        position: new THREE.Vector3(...position),
+        size: cutSize
+      };
+
+      setCutHelper(cutData);
+      return cutData;
+    } catch (error) {
+      console.warn('Error creating cut geometry:', error);
+      return null;
+    }
+  };
+
+  const handleClick = (e) => {
+    e.stopPropagation();
+    setIsSelected(true);
+  };
+
+  const handleKeyDown = (e) => {
+    if (!isSelected) return;
+
+    const moveStep = 0.5;
+    let newPosition = [...position];
+
+    switch (e.key) {
+      case 'ArrowUp':
+        newPosition[1] += moveStep;
+        break;
+      case 'ArrowDown':
+        newPosition[1] -= moveStep;
+        break;
+      case 'ArrowLeft':
+        newPosition[0] -= moveStep;
+        break;
+      case 'ArrowRight':
+        newPosition[0] += moveStep;
+        break;
+      case 'PageUp':
+        newPosition[2] -= moveStep;
+        break;
+      case 'PageDown':
+        newPosition[2] += moveStep;
+        break;
+      case 'Escape':
+        setIsSelected(false);
+        return;
+      default:
+        return;
+    }
+
+    setPosition(newPosition);
+    
+    if (doorRef.current) {
+      doorRef.current.position.set(...newPosition);
+    }
+
+    const cutData = createCutGeometry();
+    onDoorMove(doorIndex, cutData);
+  };
+
+  useEffect(() => {
+    if (isSelected) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isSelected, position]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (doorRef.current) {
+        createInitialCutSize();
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [doorRef.current, gltf]);
+
+  useEffect(() => {
+    if (cutSize && doorRef.current) {
+      const cutData = createCutGeometry();
+      onDoorMove(doorIndex, cutData);
+    }
+  }, [cutSize]);
+
   return (
-    <mesh ref={modelRef} onClick={handleClick}>
-      <primitive position={[0, 0, 0]} object={gltf.scene} scale={1} />
-    </mesh>
+    <group ref={doorRef} position={position}>
+      <primitive 
+        object={gltf.scene} 
+        position={[0, 0, 0]} 
+        scale={1}
+        onClick={handleClick}
+      />
+      
+      {cutHelper && (
+        <mesh 
+          position={cutHelper.position}
+        >
+          <boxGeometry args={[cutHelper.size.x, cutHelper.size.y, cutHelper.size.z]} />
+          <meshBasicMaterial 
+            color={isSelected ? "lime" : "red"} 
+            transparent 
+            opacity={0.3} 
+            wireframe 
+          />
+        </mesh>
+      )}
+      
+      {isSelected && (
+        <mesh position={[0, 0, 0]}>
+          <boxGeometry args={[0.1, 0.1, 0.1]} />
+          <meshBasicMaterial color="yellow" />
+        </mesh>
+      )}
+    </group>
   );
 }
 
@@ -60,6 +251,7 @@ function ThreejsScene({ wallData, modelLoad, splineEnabled, splinePath, playSpli
   const [transformMode, setTransformMode] = useState("translate");
   const [models, setModels] = useState([]);
   const [selectedModel, setSelectedModel] = useState(null);
+  const [doorCuts, setDoorCuts] = useState([]);
 
   const transformControlsRef = useRef();
 
@@ -86,8 +278,17 @@ function ThreejsScene({ wallData, modelLoad, splineEnabled, splinePath, playSpli
   useEffect(() => {
     if (modelLoad) {
       setModels((prevModels) => [...prevModels, modelLoad]);
+      setDoorCuts(prev => [...prev, null]);
     }
   }, [modelLoad]);
+
+  const handleDoorMove = (doorIndex, cutData) => {
+    setDoorCuts(prev => {
+      const newCuts = [...prev];
+      newCuts[doorIndex] = cutData;
+      return newCuts;
+    });
+  };
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -119,7 +320,6 @@ function ThreejsScene({ wallData, modelLoad, splineEnabled, splinePath, playSpli
   const handleClickModel = (model) => {
     setSelectedModel(model);
   };
-
 
   useEffect(() => {
     if (splineEnabled && splinePath.length > splineSpheres.length) {
@@ -163,7 +363,7 @@ function ThreejsScene({ wallData, modelLoad, splineEnabled, splinePath, playSpli
 
   const animateCamera = (progress) => {
     if (!splineCurve) return;
-    const baseDuration = 3000; // ms
+    const baseDuration = 3000;
     const duration = baseDuration / splineSpeed;
     const step = 1 / (duration / 16);
     let t = progress;
@@ -256,29 +456,39 @@ function ThreejsScene({ wallData, modelLoad, splineEnabled, splinePath, playSpli
 
   return (
     <div className="absolute">
-      <Canvas camera={{ position: [0, 20, 20] }} onCreated={({ camera }) => { cameraRef.current = camera; }}>
+      <Canvas 
+        camera={{ position: [0, 20, 20] }} 
+        onCreated={({ camera }) => { cameraRef.current = camera; }}
+        onClick={() => {
+          setSelectedModel(null);
+        }}
+      >
         <OrbitControls makeDefault enabled={!cameraAnimating} />
         <ambientLight />
         <gridHelper args={[200, 200, 0x00ff00, 0x444444]} />
 
-        <Box
+        <Wall
           height={boxData.height}
           width={boxData.width}
           depth={boxData.depth}
           color={boxData.color}
+          doorCuts={doorCuts}
         />
+        
         {splineEnabled && !cameraAnimating && renderSplineSpheres()}
         {splineEnabled && !cameraAnimating && renderSplineCurve()}
+        
         <Suspense fallback={<Fallback />}>
           {models.map((model, index) => (
-            <ModelLoader
+            <DoorModel
               key={index}
               modelLoad={model}
-              transformMode={transformMode}
-              onClickModel={handleClickModel}
+              doorIndex={index}
+              onDoorMove={handleDoorMove}
             />
           ))}
         </Suspense>
+
         {selectedModel && (
           <TransformControls
             ref={transformControlsRef}
@@ -286,13 +496,9 @@ function ThreejsScene({ wallData, modelLoad, splineEnabled, splinePath, playSpli
             mode={transformMode}
           />
         )}
-
       </Canvas>
     </div>
   );
 }
 
 export default ThreejsScene;
-
-
-
